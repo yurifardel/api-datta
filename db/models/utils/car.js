@@ -16,7 +16,7 @@ const CarSchema = new mongoose.Schema({
   },
   token: {
     type: String,
-    select: true,
+    select: false,
   },
   createdAt: {
     type: Date,
