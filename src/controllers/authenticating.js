@@ -1,33 +1,70 @@
 const express = require("express");
-const User = require("../../db/models/User");
+const User = require("../../db/models/utils/user");
+const bcryptjs = require("bcryptjs");
+
+const authJwt = require("../middleware/authJwt");
+
+const {
+  generateJwt,
+  getTokenFromHeaders,
+  refreshJwt,
+  verifyJwt,
+  verifyRefreshJwt,
+} = require("../utils/helpers/jwt/jwt");
 
 const route = express.Router();
+route.use(authJwt);
 
 route.post("/register", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { name, email, phone, cpf, password, confirmPassword } = req.body;
 
     if (await User.findOne({ email })) {
       return res.status(400).send({ error: "user already exists" });
     }
 
-    const user = await User.create(req.body);
+    if (password != confirmPassword) {
+      return res.json({ error: "as passwords do not match" });
+    }
 
-    return res.json({ user });
+    const user = await User.create({
+      name,
+      email,
+      phone,
+      cpf,
+      password,
+    });
+
+    const token = generateJwt({ id: user.id });
+
+    await User.findByIdAndUpdate(user.id, {
+      $set: {
+        token: token,
+      },
+    });
+
+    return res.json({ user, metadata: { token } });
   } catch (err) {
     console.log(err);
   }
 });
 
-route.get("/login", async (req, res) => {
+route.post("/login", async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
-    if (await User.find({ email })) {
-      const user = User.findById(User._id);
+    const user = await User.findOne({ email }).select("+password");
 
-      console.log(user.email);
+    if (!user) {
+      return res.json({ error: "user not found" });
     }
+
+    if (!(await bcryptjs.compareSync(password, user.password))) {
+      return res.json({ error: "passowrd invalid" });
+    }
+
+    const token = generateJwt({ id: user.id });
+    return res.json({ user, metadata: { token } });
   } catch (err) {
     console.log(err);
   }
