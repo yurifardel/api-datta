@@ -9,6 +9,8 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    unique: true,
+    lowercase: true,
   },
   phone: {
     type: Number,
@@ -21,6 +23,14 @@ const UserSchema = new mongoose.Schema({
   token: {
     type: String,
     select: false,
+  },
+  refreshToken: {
+    type: String,
+    select: false,
+  },
+  jwtVersion: {
+    type: Number,
+    default: 0,
   },
   active: {
     type: Boolean,

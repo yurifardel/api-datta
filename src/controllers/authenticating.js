@@ -8,7 +8,6 @@ const {
   generateJwt,
   getTokenFromHeaders,
   refreshJwt,
-  verifyJwt,
   verifyRefreshJwt,
 } = require("../utils/helpers/jwt/jwt");
 
@@ -36,20 +35,25 @@ route.post("/register", async (req, res) => {
     });
 
     const token = generateJwt({ id: user.id });
+    const refreshToken = refreshJwt({
+      id: user.id,
+      version: user.jwtVersion,
+    });
 
     await User.findByIdAndUpdate(user.id, {
       $set: {
-        token: token,
+        token,
+        refreshToken,
       },
     });
 
-    return res.json({ user, metadata: { token } });
+    return res.json({ user, metadata: { token, refreshToken } });
   } catch (err) {
     console.log(err);
   }
 });
 
-route.post("/login", async (req, res, next) => {
+route.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -64,9 +68,45 @@ route.post("/login", async (req, res, next) => {
     }
 
     const token = generateJwt({ id: user.id });
-    return res.json({ user, metadata: { token } });
+    const refreshToken = refreshJwt({
+      id: user.id,
+      version: user.jwtVersion,
+    });
+    return res.json({ user, metadata: { token, refreshToken } });
   } catch (err) {
     console.log(err);
+  }
+});
+
+route.post("/refreshToken", async (req, res) => {
+  const token = getTokenFromHeaders(req.headers);
+
+  try {
+    const decoded = verifyRefreshJwt(token);
+    console.log(decoded.version);
+
+    const account = await User.findById(decoded.id);
+
+    if (!account)
+      return res.status(401).send({ error: "not token in account" });
+
+    if (decoded.version != account.jwtVersion)
+      return res.status(400).send({ error: "not version" });
+
+    const meta = {
+      token: generateJwt({ id: account.id }),
+    };
+
+    await User.findByIdAndUpdate(account.id, {
+      $set: {
+        refreshToken: meta.token,
+      },
+    });
+
+    return res.json({ meta });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).send({ error: "error in refresh token" });
   }
 });
 

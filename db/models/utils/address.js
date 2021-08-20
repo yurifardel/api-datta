@@ -22,10 +22,6 @@ const AddressSchema = new mongoose.Schema({
     ref: "User",
     require: true,
   },
-  token: {
-    type: String,
-    select: true,
-  },
 });
 
 const Address = mongoose.model("Address", AddressSchema);
