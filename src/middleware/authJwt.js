@@ -15,24 +15,25 @@ module.exports = (req, res, next) => {
     return res.status(401).send({ error: "no token provided" });
   }
 
-  const parts = token.split(" ");
+  // const parts = token.split(" ");
 
-  if (parts.length !== 2) {
-    return res.status(401).send({ error: "token error" });
-  }
+  // if (parts.length !== 2) {
+  //   return res.status(401).send({ error: "token error" });
+  // }
 
-  const [bearer, tkn] = parts;
+  // const [bearer, tkn] = parts;
 
-  if (!/^Bearer$/i.test(bearer)) {
-    return res.status(401).send({ error: "token malformatted" });
-  }
+  // if (!/^Bearer$/i.test(bearer)) {
+  //   return res.status(401).send({ error: "token malformatted" });
+  // }
 
   try {
-    const decoded = verifyJwt(tkn);
+    const decoded = verifyJwt(token);
 
     req.userId = decoded.id;
     next();
   } catch (err) {
+    // console.log(err);
     if (err instanceof jwt.TokenExpiredError) {
       return res.status(401).send({ error: "expired token" });
     }
